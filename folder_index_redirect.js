@@ -1,7 +1,7 @@
 // This is a solution for the problem with s3 websites and subfolders www.site.com/folder/ will not auto 
 //   redirect to www.site.com/folder/index.html like most other modern web servers
 // This should be deployed as a Lambda@Edge connected to the CloudFront Distribution
-// Only Node.js 10.x Runtime supports Lambda@Edge for right now, we have to wait for AWS to support 12x and beyond
+// Only Node.js 18.x Runtime supports Lambda@Edge for right now, we have to wait for AWS to support 12x and beyond
 
 'use strict';
 

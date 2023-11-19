@@ -38,15 +38,25 @@ data "aws_iam_policy_document" "s3_bucket_policy" {
 
 resource "aws_s3_bucket" "s3_bucket" {
   bucket = var.domain_name
-  acl    = "private"
-
-  versioning {
-    enabled = true
-  }
-
-  policy = data.aws_iam_policy_document.s3_bucket_policy.json
 
   tags = var.tags
+}
+
+resource "aws_s3_bucket_acl" "s3_bucket" {
+  bucket = aws_s3_bucket.s3_bucket.id
+  acl    = "private"
+}
+
+resource "aws_s3_bucket_versioning" "s3_bucket" {
+  bucket = aws_s3_bucket.s3_bucket.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_policy" "s3_bucket_policy" {
+  bucket = aws_s3_bucket.s3_bucket.id
+  policy = data.aws_iam_policy_document.s3_bucket_policy.json
 }
 
 data "aws_route53_zone" "domain_name" {
@@ -90,7 +100,8 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   default_root_object = "index.html"
 
   aliases = [
-    var.domain_name
+    var.domain_name,
+    "www.${var.domain_name}"
   ]
 
   default_cache_behavior {
@@ -133,18 +144,31 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   restrictions {
     geo_restriction {
       restriction_type = "none"
+      locations        = []
     }
   }
   viewer_certificate {
     acm_certificate_arn      = data.aws_acm_certificate.acm_cert.arn
     ssl_support_method       = "sni-only"
-    minimum_protocol_version = "TLSv1"
+    minimum_protocol_version = "TLSv1.2_2021"
+  }
+  custom_error_response {
+    error_code            = 400
+    response_code         = 400
+    error_caching_min_ttl = 10
+    response_page_path    = "/4xx.html"
   }
   custom_error_response {
     error_code            = 403
-    response_code         = 200
-    error_caching_min_ttl = 0
-    response_page_path    = "/"
+    response_code         = 403
+    error_caching_min_ttl = 10
+    response_page_path    = "/4xx.html"
+  }
+  custom_error_response {
+    error_code            = 404
+    response_code         = 204
+    error_caching_min_ttl = 10
+    response_page_path    = "/4xx.html"
   }
   tags = var.tags
 }
